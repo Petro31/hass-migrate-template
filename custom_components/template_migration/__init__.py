@@ -41,6 +41,8 @@ def create_migrated_file(path: Path, configs: list[ConfigType]) -> None:
             configs,
             yaml_file,
             Dumper=TemplateDumper,
+            allow_unicode=True,
+            sort_keys=False,
         )
     _LOGGER.info("Created migrated template YAML file at %s", path)
 
