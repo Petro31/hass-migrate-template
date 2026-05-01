@@ -7,14 +7,20 @@ from pathlib import Path
 import yaml
 
 from homeassistant.components.template import DOMAIN as TEMPLATE_DOMAIN
-from homeassistant.components.template.helpers import DATA_DEPRECATION
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_PLATFORM
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.service import ServiceCall, async_register_admin_service
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+from .const import DOMAIN, LEGACY_FIELDS, LEGACY_KEYS
+from .helpers import (
+    format_migration_config,
+    get_legacy_location_breadcrumb,
+    log_legacy_location,
+    rewrite_legacy_to_modern_config,
+    rewrite_legacy_to_modern_configs,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,48 +53,61 @@ def create_migrated_file(path: Path, configs: list[ConfigType]) -> None:
     _LOGGER.info("Created migrated template YAML file at %s", path)
 
 
-async def generate_migration_yaml(hass: HomeAssistant) -> None:
+async def generate_migration_yaml(hass: HomeAssistant, config: ConfigType) -> None:
     """Generate migration YAML for legacy template helper."""
-    if (found_issues := hass.data.pop(DATA_DEPRECATION, None)) is not None:
-        migrated: dict[str, list[ConfigType]] = {}
 
-        issue_registry = ir.async_get(hass)
+    migrated: dict[str, list[str]] = {}
+    for domain, extra_legacy_fields in LEGACY_FIELDS.items():
+        if (platform_configs := config.get(domain)) is not None:
+            if isinstance(platform_configs, list):
+                for platform_config in platform_configs:
+                    if (
+                        isinstance(platform_config, dict)
+                        and platform_config.get(CONF_PLATFORM) == TEMPLATE_DOMAIN
+                    ):
+                        location = get_legacy_location_breadcrumb(platform_config)
+                        if domain not in migrated:
+                            migrated[domain] = []
 
-        for issue_id in found_issues:
-            if (
-                issue := issue_registry.async_get_issue(TEMPLATE_DOMAIN, issue_id)
-            ) is not None and issue.translation_placeholders is not None:
-                if (domain := issue.translation_placeholders.get("domain")) and (
-                    issue_yaml := issue.translation_placeholders.get("config")
-                ):
-                    if domain not in migrated:
-                        migrated[domain] = []
+                        if (legacy_key := LEGACY_KEYS.get(domain)) is None:
+                            migrated_config = rewrite_legacy_to_modern_config(
+                                hass, platform_config, extra_legacy_fields
+                            )
+                            formatted_config = format_migration_config(migrated_config)
+                            log_legacy_location(
+                                hass, domain, location, formatted_config
+                            )
+                            migrated[domain].append({domain: [formatted_config]})
 
-                    issue_yaml = issue_yaml.replace("```", "").strip()
-                    config: ConfigType = yaml.safe_load(issue_yaml)
+                        if legacy_configs := platform_config.get(legacy_key):
+                            if location:
+                                cnt = len(legacy_configs)
+                                message = f"Found {cnt} legacy template {domain} entit{'ies' if cnt > 1 else 'y'} {location}"
+                                _LOGGER.info(message)
+                            for migrated_config in rewrite_legacy_to_modern_configs(
+                                hass, domain, legacy_configs, extra_legacy_fields
+                            ):
+                                formatted_config = format_migration_config(
+                                    migrated_config
+                                )
+                                migrated[domain].append({domain: [formatted_config]})
 
-                    if sub_configs := config.pop(TEMPLATE_DOMAIN, None):
-                        for sub_config in sub_configs:
-                            migrated[domain].append(sub_config)
+    if not migrated:
+        return
 
-        if migrated:
-            migration_path = Path(hass.config.path("migrated_templates"))
-            if not migration_path.exists():
-                migration_path.mkdir()
-                _LOGGER.info(
-                    "Created template migration directory at %s", migration_path
-                )
+    migration_path = Path(hass.config.path("migrated_templates"))
+    if not migration_path.exists():
+        migration_path.mkdir()
+        _LOGGER.info("Created template migration directory at %s", migration_path)
 
-            for domain, configs in migrated.items():
-                yaml_path = migration_path / f"{domain}.yaml"
-                if yaml_path.exists():
-                    _LOGGER.warning(
-                        "Overwriting existing migration file at %s", yaml_path
-                    )
+    for domain, configs in migrated.items():
+        yaml_path = migration_path / f"{domain}.yaml"
+        if yaml_path.exists():
+            _LOGGER.warning("Overwriting existing migration file at %s", yaml_path)
 
-                await hass.async_add_executor_job(
-                    partial(create_migrated_file, yaml_path, configs)
-                )
+        await hass.async_add_executor_job(
+            partial(create_migrated_file, yaml_path, configs)
+        )
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -96,7 +115,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def _service_handler(_: ServiceCall) -> None:
         """Generate migration YAML service handler."""
-        await generate_migration_yaml(hass)
+        await generate_migration_yaml(hass, config)
 
     async_register_admin_service(
         hass, DOMAIN, SERVICE_GENERATE_MIGRATION_YAML, _service_handler
