@@ -36,7 +36,6 @@ from homeassistant.components.template.light import (
     CONF_RGBWW,
     CONF_SUPPORTS_TRANSITION,
     CONF_TEMPERATURE,
-    CONF_WHITE_VALUE,
 )
 from homeassistant.components.template.lock import CONF_CODE_FORMAT
 from homeassistant.components.template.vacuum import CONF_BATTERY_LEVEL, CONF_FAN_SPEED
@@ -113,6 +112,7 @@ CONF_TEMPERATURE_TEMPLATE = "temperature_template"
 CONF_TILT_TEMPLATE = "tilt_template"
 CONF_UV_INDEX_TEMPLATE = "uv_index_template"
 CONF_VISIBILITY_TEMPLATE = "visibility_template"
+CONF_WHITE_VALUE = "white_value"
 CONF_WHITE_VALUE_TEMPLATE = "white_value_template"
 CONF_WIND_BEARING_TEMPLATE = "wind_bearing_template"
 CONF_WIND_GUST_SPEED_TEMPLATE = "wind_gust_speed_template"
