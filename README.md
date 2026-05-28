@@ -34,5 +34,13 @@ This integration helps automatically migrate legacy template sensor issues into 
 7.  Verify the yaml loads properly by checking the configuration in **Developer Tools** -> **YAML** tab, **Check configuration** button.
     
     [![Open your Home Assistant instance and show your server controls.](https://my.home-assistant.io/badges/server_controls.svg)](https://my.home-assistant.io/redirect/server_controls/)
-8.  Remove all references to the legacy templates provided by each repair.
-9.  Be careful, make sure **Check configuration** passes before restarting Home Assistant. Restart Home Assistant.
+8.  Remove all references to the legacy templates.  Your logs will contain information where to look for the legacy template entities.
+
+    [![Open your Home Assistant instance and show your Home Assistant logs.](https://my.home-assistant.io/badges/logs.svg)](https://my.home-assistant.io/redirect/logs/)
+
+> [!WARNING]  
+> **Do not run the `template_migration.generate_yaml` action after removing legacy template entities.**
+>
+> This process should only be ran one time.  Subsequent runs will overwrite the migrated templates each time.  If you remove a legacy template entity and run the action again, the removed template entity will not show up in the migrated entities.
+
+7.  Be careful, make sure **Check configuration** passes before restarting Home Assistant. Restart Home Assistant.
