@@ -38,7 +38,7 @@ from homeassistant.components.template.light import (
     CONF_TEMPERATURE,
 )
 from homeassistant.components.template.lock import CONF_CODE_FORMAT
-from homeassistant.components.template.vacuum import CONF_BATTERY_LEVEL, CONF_FAN_SPEED
+from homeassistant.components.template.vacuum import CONF_FAN_SPEED
 from homeassistant.components.template.weather import (
     CONF_APPARENT_TEMPERATURE,
     CONF_ATTRIBUTION,
@@ -79,7 +79,6 @@ CONF_COLOR_ACTION = "set_color"
 # Legacy Fields
 CONF_APPARENT_TEMPERATURE_TEMPLATE = "apparent_temperature_template"
 CONF_ATTRIBUTION_TEMPLATE = "attribution_template"
-CONF_BATTERY_LEVEL_TEMPLATE = "battery_level_template"
 CONF_CLOUD_COVERAGE_TEMPLATE = "cloud_coverage_template"
 CONF_CODE_FORMAT_TEMPLATE = "code_format_template"
 CONF_COLOR_TEMPLATE = "color_template"
@@ -188,7 +187,6 @@ LEGACY_FIELDS = {
         CONF_VALUE_TEMPLATE: CONF_STATE,
     },
     VACUUM_DOMAIN: {
-        CONF_BATTERY_LEVEL_TEMPLATE: CONF_BATTERY_LEVEL,
         CONF_FAN_SPEED_TEMPLATE: CONF_FAN_SPEED,
         CONF_VALUE_TEMPLATE: CONF_STATE,
     },
